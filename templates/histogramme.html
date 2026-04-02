@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Histogramme Paris</title>
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
+    #chart { width: 100%; height: 500px; }
+  </style>
+</head>
+<body>
+  <h1>Prévisions météo Paris — 7 prochains jours</h1>
+  <div id="chart"></div>
+
+  <script>
+    google.charts.load('current', { packages: ['corechart'] });
+    google.charts.setOnLoadCallback(init);
+
+    async function init() {
+      const res = await fetch('/paris-daily');
+      const json = await res.json();
+
+      const data = new google.visualization.DataTable();
+      data.addColumn('string', 'Date');
+      data.addColumn('number', 'Temp Max (°C)');
+      data.addColumn('number', 'Temp Min (°C)');
+
+      json.forEach(d => {
+        data.addRow([d.date, d.temp_max, d.temp_min]);
+      });
+
+      const options = {
+        title: 'Températures min/max à Paris (7 jours)',
+        chartArea: { width: '70%' },
+        hAxis: { title: 'Date' },
+        vAxis: { title: '°C' },
+        bars: 'vertical'
+      };
+
+      const chart = new google.visualization.ColumnChart(document.getElementById('chart'));
+      chart.draw(data, options);
+    }
+  </script>
+</body>
+</html>
