@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Atelier — Météo Montigny-le-Bretonneux</title>
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 24px;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #fff;
+      min-height: 100vh;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    p.subtitle {
+      color: rgba(255,255,255,0.5);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    .chart-card {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    #chart { width: 100%; height: 480px; }
+    #status {
+      margin-top: 12px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="chart-card">
+    <h1>Météo Montigny-le-Bretonneux</h1>
+    <p class="subtitle">Prévisions 7 jours — Précipitations &amp; Températures</p>
+    <div id="chart"></div>
+    <div id="status">Chargement des données...</div>
+  </div>
+
+  <script>
+    google.charts.load('current', { packages: ['corechart'] });
+    google.charts.setOnLoadCallback(init);
+
+    async function init() {
+      try {
+        const res = await fetch('/montigny-meteo');
+        const json = await res.json();
+
+        const data = new google.visualization.DataTable();
+        data.addColumn('string', 'Date');
+        data.addColumn('number', 'Précipitations (mm)');
+        data.addColumn('number', 'Temp Max (°C)');
+        data.addColumn('number', 'Temp Min (°C)');
+
+        json.forEach(d => {
+          // Formater la date en "Lun 07/04"
+          const dt = new Date(d.date + 'T00:00:00');
+          const jours = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+          const label = jours[dt.getDay()] + ' '
+            + String(dt.getDate()).padStart(2,'0') + '/'
+            + String(dt.getMonth()+1).padStart(2,'0');
+          data.addRow([label, d.precipitation, d.temp_max, d.temp_min]);
+        });
+
+        const options = {
+          title: 'Précipitations et Températures — Montigny-le-Bretonneux (78)',
+          titleTextStyle: { color: '#fff', fontSize: 16 },
+          backgroundColor: 'transparent',
+          legend: { position: 'bottom', textStyle: { color: '#ccc' } },
+          seriesType: 'bars',
+          series: {
+            0: { type: 'bars', color: '#38bdf8', targetAxisIndex: 0 },
+            1: { type: 'line', color: '#f87171', lineWidth: 3, pointSize: 6, targetAxisIndex: 1 },
+            2: { type: 'line', color: '#fb923c', lineWidth: 3, pointSize: 6, targetAxisIndex: 1 }
+          },
+          vAxes: {
+            0: {
+              title: 'Précipitations (mm)',
+              titleTextStyle: { color: '#38bdf8' },
+              textStyle: { color: '#94a3b8' },
+              minValue: 0,
+              gridlines: { color: 'rgba(255,255,255,0.08)' }
+            },
+            1: {
+              title: 'Température (°C)',
+              titleTextStyle: { color: '#f87171' },
+              textStyle: { color: '#94a3b8' },
+              gridlines: { color: 'transparent' }
+            }
+          },
+          hAxis: {
+            textStyle: { color: '#94a3b8' },
+            slantedText: false
+          },
+          chartArea: { width: '75%', height: '70%' },
+          bar: { groupWidth: '50%' },
+          animation: { startup: true, duration: 800, easing: 'out' }
+        };
+
+        const chart = new google.visualization.ComboChart(document.getElementById('chart'));
+        chart.draw(data, options);
+
+        document.getElementById('status').textContent =
+          json.length + ' jours chargés depuis /montigny-meteo';
+
+      } catch (err) {
+        document.getElementById('status').textContent = 'Erreur : ' + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
